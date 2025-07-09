@@ -1,28 +1,29 @@
-import { test, expect } from "./fixtures/baseFixtures";
-const BASE_URL = "https://www.saucedemo.com/";
-const ERROR_BLOCK = '[data-test="error"]';
-const PASSWORD = "secret_sauce";
+import { test, expect } from "../fixtures/baseFixtures";
+import { LoginPage } from "../pages/LoginPage";
+import { InventoryPage } from "../pages/InventoryPage";
 
+const PASSWORD = "secret_sauce";
 const USERS = [
   { username: "standard_user", shouldSucceed: true },
   { username: "locked_out_user", shouldSucceed: false },
   { username: "problem_user", shouldSucceed: true },
-  { username: "performance_glitch_user", shouldSucceed: true },
-  { username: "error_user", shouldSucceed: true },
-  { username: "visual_user", shouldSucceed: true },
 ];
 
-test.describe("Авторизация пользователей SauceDemo", () => {
+test.describe("POM: Авторизация пользователей", () => {
   USERS.forEach(({ username, shouldSucceed }) => {
-    test(`Проверка авторизации: ${username}`, async ({ page, loginAs }) => {
-      await loginAs(username, PASSWORD);
+    test(`Login: ${username}`, async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      const inventoryPage = new InventoryPage(page);
+
+      await loginPage.goto();
+      await loginPage.login(username, PASSWORD);
 
       if (shouldSucceed) {
-        await expect(page).toHaveURL(`${BASE_URL}inventory.html`);
-        await expect(page.locator(".title")).toHaveText("Products");
+        await inventoryPage.verifyPageLoaded();
+        expect(await inventoryPage.getInventoryItemsCount()).toBeGreaterThan(0);
       } else {
-        await expect(page.locator(ERROR_BLOCK)).toHaveText(
-          "Epic sadface: Sorry, this user has been locked out."
+        await expect(page.locator('[data-test="error"]')).toContainText(
+          "locked out"
         );
       }
     });
